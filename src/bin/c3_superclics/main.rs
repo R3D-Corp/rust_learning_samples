@@ -1,4 +1,6 @@
 slint::include_modules!();
+use std::time::Instant;
+
 use rand::Rng;
 
 
@@ -19,11 +21,22 @@ fn move_circle_into(handler : &AppWindow, width : f32, height : f32) {
     handler.set_circle_y(new_y.into());
 }
 
-fn incr_score(handler : &AppWindow) {
-    handler.set_score(handler.get_score() + 1);
+fn incr_score(handler : &AppWindow, start : &mut Instant) {
+    let time = start.elapsed().as_secs_f32();
+
+    let score : f32 = handler.get_score() as f32;
+    let score = score + (10000.0 / time);
+
+    handler.set_score(score as i32);
+
+    *start = Instant::now();
+
 }
 
 fn main() {
+
+    let mut start = Instant::now();
+
     let ui = AppWindow::new().unwrap();
     let ui_handle = ui.as_weak();
     
@@ -31,7 +44,8 @@ fn main() {
     ui.on_circle_clicked(move || {
         let ui_handle_click = ui_handle_click.unwrap();
 
-        incr_score(&ui_handle_click);
+        
+        incr_score(&ui_handle_click, &mut start);
         move_circle(&ui_handle_click);
     });
     
