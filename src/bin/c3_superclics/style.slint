@@ -1,0 +1,53 @@
+import { AboutSlint, VerticalBox } from "std-widgets.slint";
+
+export component AppWindow inherits Window {
+    preferred-width: 400px; 
+    preferred-height: 300px;
+    title: "Superclics";
+    
+    in-out property <int> score : 0;
+    in-out property <length> circle-x : 100px;
+    in-out property <length> circle-y : 100px;
+
+    out property <length> area-width : root.width;
+    out property <length> area-height : root.height;
+
+    callback circle-clicked();
+
+    // Callback to notify Rust about size changes parameters are (Width : length, Height : length)
+    callback size_changed(length, length);
+
+    Text {
+        text: "Score: \{root.score}";
+        font-size: 24px;
+        x: 20px; y: 10px;
+    }
+
+    // Launch callback
+    changed width => {root.size_changed(root.width, root.height)}
+    changed height => {root.size_changed(root.width, root.height)}
+
+    circle := Rectangle {
+        x: root.circle-x; 
+        y: root.circle-y;
+
+        width: 50px; 
+        height: 50px;
+
+        background: red;
+        border-radius: 25px;
+
+        TouchArea {
+            clicked => {
+                root.circle-clicked();
+            }
+        }
+
+
+        // Animation of moving the circle to a new position
+        animate x, y {
+            duration: 250ms;
+            easing: ease-in-out;
+        }
+    }
+}
