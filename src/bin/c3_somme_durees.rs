@@ -7,7 +7,7 @@ use helmo_b1_rust::{logger::{log_entry::{self}, log_type, logs_manager::LogsMana
     & Show the message.
 */
 fn ask_time(maximum : u16, message : &str) -> u16 {
-    let time = console::lire_type_with_validation::<u16, _>(Some(message), |time: &u16| {
+    let time = console::lire_type_condition::<u16, _>(Some(message), |time: &u16| {
         if *time >= maximum {
             return false;
         }
