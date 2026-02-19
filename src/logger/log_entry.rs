@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::logger::log_type::LogType;
 
 fn create_log(log_type : LogType, value : String) -> LogEntry {
@@ -12,6 +14,7 @@ pub fn create_log_string(log_type : LogType, text : String) -> LogEntry {
     return create_log(log_type, text)
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct LogEntry {
     log_type : LogType,
     value : String,

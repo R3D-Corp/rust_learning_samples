@@ -44,11 +44,11 @@ pub fn lire_type_condition<T: std::str::FromStr, F: Fn(&T) -> bool>(message : Op
     lire_type_with_validation(message, validation)
 }
 
-pub fn lire_string_with_question(message : &str) -> String {
+pub fn lire_string_msg(message : &str) -> String {
     lire_type::<String>(Some(message))
 } 
 
-pub fn lire_string_without_question() -> String {
+pub fn lire_string() -> String {
     lire_type::<String>(None)
 } 
 

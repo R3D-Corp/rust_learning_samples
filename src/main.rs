@@ -14,7 +14,7 @@ fn main() {
         "Démarrage du jeu.",
     ));
 
-    let s = console::lire_string_with_question("salut ton nom?");
+    let s = console::lire_string_msg("salut ton nom?");
 
     println!("{}", s);
 

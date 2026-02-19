@@ -1,5 +1,9 @@
+use serde::{Deserialize, Serialize};
+
 use super::ansi_colors::AnsiColors;
 
+#[derive(Serialize, Deserialize, Debug)]
+#[repr(u8)]
 #[allow(dead_code)]
 pub enum LogType {
     Info,

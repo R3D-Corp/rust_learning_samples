@@ -3,35 +3,88 @@ use std::fs::{create_dir_all, OpenOptions};
 use std::io::Write;
 use chrono::{Datelike, Utc};
 
-pub struct LogsManager {
-    path: String,
-    verbose : bool,
-    logs : Vec<LogEntry>
 
+
+const MAGIC_NUMBER : &[u8] = b"Rust_log_V1";
+pub struct LogsManager {
+    path: String, // Path to save at.
+    verbose : bool, // If the console receive or not the messages
+    logs : Vec<LogEntry> // Vector to save the data
+    
 }
 
 const LOGS_SIZE : usize = 100;
 impl LogsManager {
     pub fn new(name : &str, verbose : bool) -> LogsManager {
+        
+        // Take the time to create the file in the format "dd--m-yyyy"
         let now = Utc::now();
         let day : u8 = now.day().try_into().unwrap();
         let month : u8 = now.month().try_into().unwrap();
         let year : i32 = now.year().try_into().unwrap();
-
+        
         let folder_path = format!("data/logs/{name}");
         let path : String = format!("{folder_path}/{day}-{month}-{year}");
-
+        
         if let Err(e) = create_dir_all(&folder_path) {
             eprintln!("Unable to create the folder {} : {}", folder_path, e);
         }
-
-        LogsManager {
+        
+        
+        let l = LogsManager {
             path,
             verbose,
             logs :  Vec::with_capacity(LOGS_SIZE)
+        };
+        
+        match l.write_magic_number() {
+            Ok(_) => l,
+            Err(_) => panic!("Unexcpeted error while creating the LogsManager")
+        }
+        
+    }
+    
+    fn write_magic_number(&self) -> std::io::Result<()> {
+        let mut file = OpenOptions::new()
+        .create(true)
+            .append(true)
+            .open(format!("{}.bin", self.path))?;
+        
+        if file.metadata()?.len() == 0 {
+            file.write_all(MAGIC_NUMBER)?;
+        }
+        
+        Ok(())
+    }
+    
+    fn save(&self) -> std::io::Result<()> {
+        if cfg!(debug_assertions) {
+            self.save_to_file()
+        } else {
+            self.save_to_file_binary()
         }
     }
 
+    fn save_to_file_binary(&self) -> std::io::Result<()> {
+        let mut file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(format!("{}.bin", self.path))?;
+
+        for log in &self.logs {
+            let encoded = bincode::serialize(log)
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+
+            let len = encoded.len() as u64;
+
+            file.write_all(&len.to_le_bytes())?;
+            file.write_all(&encoded)?;
+        }
+
+        Ok(())
+    }
+
+    
     fn save_to_file(&self) -> std::io::Result<()> {
         let mut file = OpenOptions::new()
             .create(true)
@@ -63,7 +116,7 @@ impl LogsManager {
 
     
     fn flush(&mut self) {
-        match &self.save_to_file() {
+        match &self.save() {
             Ok(()) => println!("Log saved successfully"),
             Err(_) => println!("{}", self.path),
         }
