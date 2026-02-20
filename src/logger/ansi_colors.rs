@@ -1,3 +1,4 @@
+
 #[allow(dead_code)]
 pub enum AnsiColors {
     Reset,
@@ -20,5 +21,12 @@ impl AnsiColors {
             Self::Blue => "\u{001B}[34m",
             Self::Purple => "\u{001B}[35m",
         }
+    }
+}
+
+impl std::fmt::Display for AnsiColors  {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let color = self.to_str();
+        write!(f, "{}", color)
     }
 }

@@ -6,6 +6,18 @@ use helmo_b1_rust::{logger::{log_entry::{self}, log_type, logs_manager::LogsMana
     It check the condition of time < maximum.
     & Show the message.
 */
+
+///
+/// Function that ask a input to the user. 
+/// # Parameters
+/// * `maximum` : a u16 which represent the maximum that the user can enter without provacting an reasking.
+/// * `message` : the output question showed to the user.
+/// 
+/// # Return
+/// * `u16` : the validate & verified user input.
+/// 
+/// # Author
+/// R3D
 fn ask_time(maximum : u16, message : &str) -> u16 {
     let time = console::lire_type_condition::<u16, _>(Some(message), |time: &u16| {
         if *time >= maximum {

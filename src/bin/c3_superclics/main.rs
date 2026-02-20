@@ -30,11 +30,10 @@ fn incr_score(handler : &AppWindow, start : &mut Instant) {
     handler.set_score(score as i32);
 
     *start = Instant::now();
-
+    
 }
 
 fn main() {
-
     let mut start = Instant::now();
 
     let ui = AppWindow::new().unwrap();
