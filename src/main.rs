@@ -9,8 +9,8 @@ use helmo_b1_rust::logger::logs_manager::LogsManager;
 use helmo_b1_rust::tools::console;
 fn main() {
     let mut l = LogsManager::new("test", true);
-    l.add_log(log_entry::create_log_from_text(
-        LogType::Info,
+    l.add_log(log_entry::create_log(
+        None,
         "Démarrage du jeu.",
     ));
 
@@ -45,5 +45,5 @@ fn main() {
             }
         }
     }
-    l.add_log(log_entry::create_log_from_text(LogType::Success, "Game finished !"));
+    l.add_log(log_entry::create_log(Some(LogType::Success), "Game finished !"));
 }

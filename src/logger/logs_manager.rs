@@ -6,6 +6,8 @@ use chrono::{Datelike, Utc};
 
 
 const MAGIC_NUMBER : &[u8] = b"Rust_log_V1";
+const LOGS_SIZE : usize = 100;
+
 pub struct LogsManager {
     path: String, // Path to save at.
     verbose : bool, // If the console receive or not the messages
@@ -13,7 +15,6 @@ pub struct LogsManager {
     
 }
 
-const LOGS_SIZE : usize = 100;
 impl LogsManager {
     pub fn new(name : &str, verbose : bool) -> LogsManager {
         
@@ -92,7 +93,7 @@ impl LogsManager {
             .open(&self.path)?;
 
         for log in &self.logs {
-            writeln!(file, "[{}] {}", log.get_type().to_str(), log.get_value())?;
+            writeln!(file, "[{}] {}", log.get_type(), log.get_value())?;
         }
         Ok(())
     }
@@ -128,6 +129,7 @@ impl LogsManager {
     }
 }
 
+/* Prevent Log lost when compilator destruc the object */
 impl Drop for LogsManager {
     fn drop(&mut self) {
         self.force_flush();

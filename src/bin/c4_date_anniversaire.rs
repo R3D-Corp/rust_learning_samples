@@ -48,12 +48,12 @@ fn main() {
     let mut l = LogsManager::new("date_anniversaire", true);
     
     let surname : String = console::lire_string_msg("Prénom ? ");
-    l.add_log(log_entry::create_log_string(LogType::Info, format!("Bienvenue {surname}")));
+    l.add_log(log_entry::create_log(None, format!("Bienvenue {surname}")));
 
     let dob : Date = console::lire_type::<Date>(Some("Date de naissance ? "));
 
-    l.add_log(log_entry::create_log_string(
-        LogType::Success, 
+    l.add_log(log_entry::create_log(
+        Some(LogType::Success), 
         format!(
             "Vous avez {} ans", 
             calculate_age(dob)

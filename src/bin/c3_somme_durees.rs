@@ -1,11 +1,4 @@
-use helmo_b1_rust::{logger::{log_entry::{self}, log_type, logs_manager::LogsManager}, tools::console};
-
-
-/*
-    Method to ask time input to the user.
-    It check the condition of time < maximum.
-    & Show the message.
-*/
+use helmo_b1_rust::{logger::{log_entry, log_type::LogType, logs_manager::LogsManager}, tools::console};
 
 ///
 /// Function that ask a input to the user. 
@@ -32,7 +25,7 @@ fn main() {
 
     let mut l  = LogsManager::new("somme_durees", true);
 
-    l.add_log(log_entry::create_log_from_text(log_type::LogType::Info, "test"));
+    l.add_log(log_entry::create_log(None, "test"));
 
     // Ask user time and save it.
     let h1 = ask_time(9999, "Combien d'heures ? ");
@@ -52,5 +45,5 @@ fn main() {
     h_total = h1 + h2 + m_incr;
 
     let s : String = format!("{}h{}min{}sec", h_total, m_total, s_total);
-    l.add_log(log_entry::create_log_from_text(log_type::LogType::Success, &s));
+    l.add_log(log_entry::create_log(Some(LogType::Success), &s));
 }

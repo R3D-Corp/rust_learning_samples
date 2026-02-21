@@ -70,7 +70,7 @@ fn main() {
 
 
     let mut l : LogsManager = LogsManager::new("convertisseur_base_2", true); 
-    l.add_log(log_entry::create_log_from_text(LogType::Info, "Démarrage du convertisseur")); 
+    l.add_log(log_entry::create_log(None, "Démarrage du convertisseur")); 
 
     let user_input : usize = console::lire_int_unsigned_msg("Entier ? "); // Ask user an input.
     
@@ -80,5 +80,5 @@ fn main() {
         .collect();
 
     let s : String = format!("Décimal : {}\n\t\tBinaire : {}\n\t\tHexadécimal : 0x{}", user_input, display_result, convertisseur_base_16(user_input)); // Create the final output String.
-    l.add_log(log_entry::create_log_string(LogType::Success, s)); // Save & Print the output.
+    l.add_log(log_entry::create_log(Some(LogType::Success), s)); // Save & Print the output.
 }

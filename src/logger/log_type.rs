@@ -2,6 +2,9 @@ use serde::{Deserialize, Serialize};
 
 use super::ansi_colors::AnsiColors;
 
+
+pub const DEFAULT_LOG_TYPE : LogType = LogType::Info;
+
 #[derive(Serialize, Deserialize, Debug)]
 #[repr(u8)]
 #[allow(dead_code)]
@@ -13,15 +16,6 @@ pub enum LogType {
 }
 
 impl LogType {
-    pub fn to_str(&self) -> &str {
-        match self {
-            Self::Info => "INFO",
-            Self::Warning => "WARNING",
-            Self::Error => "ERROR",
-            Self::Success => "SUCCESS"
-        }
-    }
-
     fn get_color(&self) -> &str {
         match self {
             Self::Info => AnsiColors::Blue.to_str(),
@@ -32,9 +26,40 @@ impl LogType {
     }
 }
 
+impl Default for LogType {
+    fn default() -> Self {
+        DEFAULT_LOG_TYPE
+    }
+}
+
 impl std::fmt::Display for LogType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let color = self.get_color();
-        write!(f, "{}{}{}", color, self.to_str(), AnsiColors::Reset.to_str())
+        let log : &'static str = self.into();
+
+        write!(f, "{}{}{}", color, log, AnsiColors::Reset.to_str())
+    }
+}
+
+/* Convert Traits */
+impl From<&LogType> for &'static str {
+    fn from(log : &LogType) -> Self {
+        match log {
+            LogType::Info => "INFO",
+            LogType::Warning => "WARNING",
+            LogType::Error => "ERROR",
+            LogType::Success => "SUCCESS"
+        }
+    }
+}
+
+impl From<LogType> for &'static str {
+    fn from(log : LogType) -> Self {
+        match log {
+            LogType::Info => "INFO",
+            LogType::Warning => "WARNING",
+            LogType::Error => "ERROR",
+            LogType::Success => "SUCCESS"
+        }
     }
 }
