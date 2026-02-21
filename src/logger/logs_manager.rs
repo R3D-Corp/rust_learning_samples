@@ -38,10 +38,15 @@ impl LogsManager {
             logs :  Vec::with_capacity(LOGS_SIZE)
         };
         
-        match l.write_magic_number() {
-            Ok(_) => l,
-            Err(_) => panic!("Unexcpeted error while creating the LogsManager")
+
+        if !cfg!(debug_assertions) {
+            match l.write_magic_number() {
+                Ok(_) => return l,
+                Err(_) => panic!("Unexcpeted error while creating the LogsManager")
+            }
         }
+
+        l
         
     }
     
@@ -93,7 +98,8 @@ impl LogsManager {
             .open(&self.path)?;
 
         for log in &self.logs {
-            writeln!(file, "[{}] {}", log.get_type(), log.get_value())?;
+            let type_str : &'static str = (log.get_type()).into();
+            writeln!(file, "[{}] {}", type_str, log.get_value())?;
         }
         Ok(())
     }
