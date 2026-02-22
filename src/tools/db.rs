@@ -1,69 +1,34 @@
-use core::hash;
-use std::{collections::HashMap, fs::{File, OpenOptions, create_dir_all}, hash::{DefaultHasher, Hash, Hasher}, io::{BufRead, BufReader, Read, Result, Seek, SeekFrom, Write}, sync::{Arc, Mutex, mpsc}, thread, time::Instant};
-
-
+use std::{collections::HashMap, fs::{File, OpenOptions, create_dir_all}, hash::{DefaultHasher, Hash, Hasher}, io::{BufReader, Error, Read, Result, Seek, SeekFrom, Write}};
 use serde::{Serialize, Deserialize};
-use rand::{self, Rng};
 
-const ID_SIZE : u8 = 30;
-const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456489";
+const STORAGE_FOLDER : &'static str = "data/db/";
 
-// TO DELETE
-use std::alloc::{GlobalAlloc, Layout, System};
-use std::sync::atomic::{AtomicUsize, Ordering};
-
-struct TrackingAllocator;
-
-static ALLOCATED: AtomicUsize = AtomicUsize::new(0);
-
-unsafe impl GlobalAlloc for TrackingAllocator {
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        ALLOCATED.fetch_add(layout.size(), Ordering::SeqCst);
-        System.alloc(layout)
-    }
-
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        ALLOCATED.fetch_sub(layout.size(), Ordering::SeqCst);
-        System.dealloc(ptr, layout)
-    }
-}
-
-#[global_allocator]
-static A: TrackingAllocator = TrackingAllocator;
-
-fn get_current_mem() -> usize {
-    ALLOCATED.load(Ordering::SeqCst)
-}
 
 #[derive(Serialize, Deserialize, Debug)]
-
 struct DbHeader {
     data_length: u16
 }
 
 #[derive(Copy, Clone, Debug)]
-struct DbReferences {
-    file_index : u32, // If one file is completed then the db while create an another one.
+pub struct DbReferences {
     offset : u64, // For the moment, byte offset,
     length : u16, // Size in bytes
 }
 
-struct OxideDb {
+pub struct OxideDb {
     memory_index : HashMap<u64, DbReferences>,
-    active_file : String,
     data_handler : File,
     indexer : File
 }
 
 impl OxideDb {
-    fn new(active_file: &'static str) -> OxideDb {
-
-        if let Err(e) = create_dir_all(&active_file) {
+    fn new(db_name: &str) -> OxideDb {
+        if let Err(e) = create_dir_all(format!("{}/", STORAGE_FOLDER)) {
             eprintln!("{}", e);
         }
         
-        let data_path = format!("{}/test_{}.db", active_file, 1);
-        let index_path = format!("{}/test_{}.index", active_file, 1);
+        let data_path = format!("{}/{}.db", STORAGE_FOLDER, db_name);
+        let index_path = format!("{}/{}.index", STORAGE_FOLDER, db_name);
 
         let writer = OpenOptions::new()
             .read(true)
@@ -81,7 +46,6 @@ impl OxideDb {
 
         let mut db = OxideDb {
             memory_index : HashMap::new(),
-            active_file : data_path,
             data_handler: writer,
             indexer
         };
@@ -91,28 +55,6 @@ impl OxideDb {
             Err(e) => println!("Load ERROR : {}", e)
         }
         db
-    }
-
-    fn generate_id(&self) -> String {
-        let mut rng = rand::thread_rng();
-        loop {
-            let id : String = (0..ID_SIZE).map(|_| {
-                let idx = rng.gen_range(0..CHARSET.len());
-                CHARSET[idx] as char
-            }).collect();
-    
-            if !self.memory_index.contains_key(&hash_id(&id)) {
-                return id;
-            }
-        }
-    }
-    
-    fn get_all(&self) -> HashMap<u64, DbReferences> {
-        return self.memory_index.clone();
-    }
-    
-    fn get_from_string(&mut self, id : String) -> Option<DbReferences> {
-        self.memory_index.get(&hash_id(&id)).copied()
     }
 
     fn load_from_index(&mut self) -> Result<()> {
@@ -126,41 +68,11 @@ impl OxideDb {
             let length = u16::from_be_bytes(buffer[16..18].try_into().unwrap());
 
             self.memory_index.insert(hash, DbReferences {
-                file_index: 0,
                 offset,
                 length,
             });
         }
         Ok(())
-    }
-
-    fn unload(&mut self) {
-        self.memory_index.clear();
-    }
-
-    fn write<T : AsRef<[u8]>>(&mut self, value : T) -> Result<String> {
-        let data_bytes = value.as_ref();
-        let string_id = self.generate_id();
-        let hashed_id = hash_id(&string_id);
-        let data_length = data_bytes.len() as u16;
-
-        let header = DbHeader { data_length };
-        let header_bytes = bincode::serialize(&header)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
-
-
-        self.data_handler.write_all(&header_bytes)?; // Header
-        let offset = self.data_handler.seek(SeekFrom::End(0))?;
-        self.data_handler.write_all(data_bytes)?; // Data
-        
-        self.indexer.write_all(&hashed_id.to_be_bytes())?;
-        self.indexer.write_all(&offset.to_be_bytes())?;
-        self.indexer.write_all(&data_length.to_be_bytes())?;
-
-        let reference: DbReferences = DbReferences { file_index: 0, offset, length: data_length };
-        self.memory_index.insert(hashed_id.clone(), reference);
-
-        Ok(string_id)
     }
 
     fn read(&self, reference : &DbReferences) -> Result<Vec<u8>> {
@@ -173,27 +85,61 @@ impl OxideDb {
         Ok(buffer)
     }
 
-    fn get_storage_stats(&self) -> Result<()> {
-        let data_size = self.data_handler.metadata()?.len();
-        let index_file_size = self.indexer.metadata()?.len();
-        let ram_usage = get_current_mem() as u64; // Utilise ton TrackingAllocator
-
-        println!("\n--- RENTABILITÉ DU STOCKAGE ---");
-        println!("Fichier Données (.db) : {:.2} Mo", data_size as f64 / 1_048_576.0);
-        println!("Fichier Index (.index) : {:.2} Mo", index_file_size as f64 / 1_048_576.0);
-    
-        if ram_usage > 0 {
-            let ratio = data_size as f64 / ram_usage as f64;
-            println!("Ratio Données/RAM      : {:.2}x", ratio);
-            
-            if ratio > 1.0 {
-                println!("Statut : Rentable (L'index est plus léger que les données)");
-            } else {
-                println!("Statut : Coûteux (L'index pèse plus lourd que les données)");
-            }
-        }
-        Ok(())
+    fn get_from_string(&mut self, id : String) -> Option<DbReferences> {
+        self.memory_index.get(&hash_id(&id)).copied()
     }
+
+    fn read_from_string(&mut self, id : String)  -> Result<Vec<u8>> {
+        if let Some(reference) = self.get_from_string(id) {
+            return self.read(&reference);
+        }
+        Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Key not found"))
+    }
+
+    fn write_with_key<T : AsRef<[u8]>>(&mut self, id: &String, value : T) -> Result<()> {
+        let hashed_id = hash_id(id);
+        if !self.memory_index.contains_key(&hashed_id) {
+            let data_bytes = value.as_ref();
+            let data_length = data_bytes.len() as u16;
+
+            let header = DbHeader { data_length };
+            let header_bytes = bincode::serialize(&header)
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+
+            self.data_handler.write_all(&header_bytes)?; // Header
+            let offset = self.data_handler.seek(SeekFrom::End(0))?;
+            self.data_handler.write_all(data_bytes)?; // Data
+            
+            self.indexer.write_all(&hashed_id.to_be_bytes())?;
+            self.indexer.write_all(&offset.to_be_bytes())?;
+            self.indexer.write_all(&data_length.to_be_bytes())?;
+
+            let reference: DbReferences = DbReferences {offset, length: data_length };
+            self.memory_index.insert(hashed_id.clone(), reference);
+
+            Ok(())
+        } else {
+            Err(std::io::Error::new(std::io::ErrorKind::AlreadyExists, "Key already exists"))
+        }
+
+    }
+
+    pub fn get<T: for<'a> Deserialize<'a>, S:Into<String>>(&mut self, id: S) -> Result<T> {
+        // 1. On récupère les octets (ton code actuel)
+        let bytes = self.read_from_string(id.into())?;
+        
+        // 2. On transforme les octets en l'objet voulu
+        bincode::deserialize(&bytes)
+            .map_err(|e| Error::new(std::io::ErrorKind::InvalidData, e))
+    }
+
+    pub fn put<T: Serialize, S:Into<String>>(&mut self, id: S, value: &T) -> Result<()> {
+        let bytes = bincode::serialize(value)
+            .map_err(|e| Error::new(std::io::ErrorKind::InvalidData, e))?;
+        
+        self.write_with_key(&id.into(), bytes)
+    }
+
 }
 
 fn hash_id(id: &String) -> u64 {
@@ -201,3 +147,9 @@ fn hash_id(id: &String) -> u64 {
     id.hash(&mut hasher);
     hasher.finish()
 }
+
+pub fn create_db<S: Into<String>>(name : S) -> OxideDb {
+    let name_string = name.into();
+    OxideDb::new(&name_string)
+}
+
