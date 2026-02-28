@@ -4,31 +4,62 @@ use chrono::{Datelike, Utc};
 use helmo_b1_rust::{logger::{log_entry, log_type::LogType, logs_manager::LogsManager}, tools::console};
 
 
+/// Represent a simplifided date
+/// 
+/// This struct use 4 bytes on the **stack** (u8 + u8 + i16)
 struct Date {
-    pub day : u8,
+    /// Range 1-31 (fits in u8)
+    pub day : u8, 
+
+    // Range 1-12 (fits in u8)
     pub month : u8, 
-    pub year : i16
+
+    /// Range -32.768 to 32.767 (sufficient for historical and future usage)
+    pub year : i16,
 }
 
 impl FromStr for Date {
     type Err = ();
 
+    /// Function to convert a str to a Date instance
+    /// 
+    /// # Parameters
+    /// * `s` : the &str to convert into.
+    /// 
+    /// # Return
+    /// * `Date` : the &str converted into a Date instance
+    /// 
+    /// # Author
+    /// R3D
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let v: Vec<&str> = s.split('/').collect();
+        // s.split() give back an iterator which is in on the **stack**
+        let mut v = s.split('/');
 
-        if v.len() != 3 {
-            return Err(());
-        }
-
-
-        let day : u8 = v[0].parse().map_err(|_| ())?;
-        let month : u8 = v[1].parse().map_err(|_| ())?;
-        let year : i16 = v[2].parse().map_err(|_| ())?;
+        // v.next() consume the iterator
+        // ok.or() Map a Some() | None into a Ok() | Err()
+        // the first '?' operator is letting the code continue or get the error up.
+        // .parse::<u8> convert the Ok() into a u8 a Result<> which is unwrapped with map_err() which define the err
+        // the second '?' opearot is letting the coe continue or get the mapped error up.
+        let day = v.next().ok_or(())?.parse::<u8>().map_err(|_| ())?;
+        let month = v.next().ok_or(())?.parse::<u8>().map_err(|_| ())?;
+        let year = v.next().ok_or(())?.parse::<i16>().map_err(|_| ())?;
 
         Ok(Date {day, month, year})
     }
 }
 
+
+///
+/// Function to calculate the age of someone using Date struct
+/// 
+/// # Parameters
+/// * `dob` : an instance of Date considirate like the Date Of Birth
+///
+/// # Return 
+/// `i32` : the age from the instance date
+/// 
+/// # Author
+/// R3D 
 fn calculate_age(dob : Date) -> i32 {
     let now = Utc::now();
 

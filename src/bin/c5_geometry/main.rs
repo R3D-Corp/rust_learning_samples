@@ -4,26 +4,35 @@ use crate::formes::{cercle, rectangle};
 
 pub mod formes;
 
-
-fn display_result(perimeter : f64, aire : f64, form : &str) {
-    println!("Le {} a une aire de {:.2}cm² et un perimètre de {:.2}cm", form, aire, perimeter);
+/// 
+/// Display the perimeter and the surface of a shape
+/// 
+/// # Parameters
+/// * `perimeter` : The perimeter of the shape
+/// * `area` : The area of the shape
+/// * `shape` : The shape name
+///
+/// # Author
+/// R3D 
+fn display_result(perimeter : f64, area : f64, shape : &str) {
+    println!("Le {} a une aire de {:.2}cm² et un perimètre de {:.2}cm", shape, area, perimeter);
 }
 
 fn main() {
-    let form = console::lire_string_msg("Avec quelle forme voulez vous travailler ? ");
+    let shape = console::lire_string_msg("Avec quelle forme voulez vous travailler ? ");
 
-    match form.to_lowercase().as_str() {
+    match shape.to_lowercase().as_str() {
         "cercle" => {
             let radius = console::lire_double_msg("Rayon en cm ?");
-            display_result(cercle::perimeter(radius), cercle::aire(radius), &form);
+            display_result(cercle::perimeter(radius), cercle::area(radius), &shape);
         }
 
         "rectangle" => {
             let width = console::lire_double_msg("Longueur en cm ? ");
             let height = console::lire_double_msg("Hauteur en cm ? ");
             
-            match (rectangle::perimeter(height, width), rectangle::aire(height, width)) {
-                (Ok(p), Ok(a)) => display_result(p, a, &form),
+            match (rectangle::perimeter(height, width), rectangle::area(height, width)) {
+                (Ok(p), Ok(a)) => display_result(p, a, &shape),
                 (Err(e), _) | (_, Err(e)) => eprintln!("Erreur : {}", e),
             }
         }

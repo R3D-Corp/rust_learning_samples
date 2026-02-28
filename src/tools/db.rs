@@ -1,8 +1,23 @@
-use std::{collections::HashMap, fs::{File, OpenOptions, create_dir_all}, hash::{DefaultHasher, Hash, Hasher}, io::{BufReader, Error, Read, Result, Seek, SeekFrom, Write}};
+use std::{collections::HashMap, fs::{File, OpenOptions, create_dir_all}, hash::{DefaultHasher, Hash, Hasher}, io::{BufReader, Error, Read, Result, Seek, SeekFrom, Write}, sync::{Arc, Mutex}};
 use serde::{Serialize, Deserialize};
 
 const STORAGE_FOLDER : &'static str = "data/db/";
 
+
+enum DbType {
+    Player,
+    Inventory
+}
+
+pub struct DbManager {
+    instances: HashMap<DbType, Arc<Mutex<OxideDb>>>,
+}
+
+impl DbManager {
+    pub fn new() -> Self {
+        Self { instances: HashMap::new() }
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 struct DbHeader {
@@ -98,29 +113,25 @@ impl OxideDb {
 
     fn write_with_key<T : AsRef<[u8]>>(&mut self, id: &String, value : T) -> Result<()> {
         let hashed_id = hash_id(id);
-        if !self.memory_index.contains_key(&hashed_id) {
-            let data_bytes = value.as_ref();
-            let data_length = data_bytes.len() as u16;
+        let data_bytes = value.as_ref();
+        let data_length = data_bytes.len() as u16;
 
-            let header = DbHeader { data_length };
-            let header_bytes = bincode::serialize(&header)
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+        let header = DbHeader { data_length };
+        let header_bytes = bincode::serialize(&header)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
 
-            self.data_handler.write_all(&header_bytes)?; // Header
-            let offset = self.data_handler.seek(SeekFrom::End(0))?;
-            self.data_handler.write_all(data_bytes)?; // Data
-            
-            self.indexer.write_all(&hashed_id.to_be_bytes())?;
-            self.indexer.write_all(&offset.to_be_bytes())?;
-            self.indexer.write_all(&data_length.to_be_bytes())?;
+        self.data_handler.write_all(&header_bytes)?; // Header
+        let offset = self.data_handler.seek(SeekFrom::End(0))?;
+        self.data_handler.write_all(data_bytes)?; // Data
+        
+        self.indexer.write_all(&hashed_id.to_be_bytes())?;
+        self.indexer.write_all(&offset.to_be_bytes())?;
+        self.indexer.write_all(&data_length.to_be_bytes())?;
 
-            let reference: DbReferences = DbReferences {offset, length: data_length };
-            self.memory_index.insert(hashed_id.clone(), reference);
+        let reference: DbReferences = DbReferences {offset, length: data_length };
+        self.memory_index.insert(hashed_id.clone(), reference);
 
-            Ok(())
-        } else {
-            Err(std::io::Error::new(std::io::ErrorKind::AlreadyExists, "Key already exists"))
-        }
+        Ok(())
 
     }
 
@@ -153,3 +164,6 @@ pub fn create_db<S: Into<String>>(name : S) -> OxideDb {
     OxideDb::new(&name_string)
 }
 
+// fn get_or_open(name : DbType) {
+//     if()
+// }

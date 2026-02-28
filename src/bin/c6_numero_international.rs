@@ -2,6 +2,9 @@ use std::fmt::Display;
 
 use helmo_b1_rust::tools::console;
 
+
+///
+/// Enumerator that give every supported country.
 pub enum Countries {
     Netherlands,
     Belgium,
@@ -13,6 +16,7 @@ pub enum Countries {
 }
 
 impl Countries {
+    // Method to convert a &str to a Countries::
     fn from_number(c : &str) -> Countries {
         if c.starts_with("+31") || c.starts_with("0031") { return Countries::Netherlands }
         if c.starts_with("+32") || c.starts_with("0032") { return Countries::Belgium }
@@ -25,12 +29,14 @@ impl Countries {
 }
 
 impl Display for Countries {
+    // Method to display a country name
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", <&str>::from(self))
     }
 }
 
 impl From<&Countries> for &str {
+    // Method to convert  a borrowed Countries:: and get the country name in &str
     fn from(c: &Countries) -> Self {
             match c {
                 Countries::Netherlands => "Pays-Bas",
@@ -45,6 +51,7 @@ impl From<&Countries> for &str {
 }
 
 impl From<Countries> for &str {
+    // Method to convert Countries:: and get the country name in &str
     fn from(c: Countries) -> Self {
         Self::from(&c)
     }

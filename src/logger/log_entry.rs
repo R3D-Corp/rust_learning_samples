@@ -47,5 +47,4 @@ impl LogEntry {
             value : value,
         }
     }
-
 }

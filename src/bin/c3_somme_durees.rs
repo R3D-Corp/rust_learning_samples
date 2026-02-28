@@ -22,7 +22,6 @@ fn ask_time(maximum : u16, message : &str) -> u16 {
 }  
 
 fn main() {
-
     let mut l  = LogsManager::new("somme_durees", true);
 
     l.add_log(log_entry::create_log(None, "test"));

@@ -36,9 +36,7 @@ fn first_letter_uppercase(s : &str) -> String{
 
 
 fn main() {
-    
     let mut l : LogsManager = LogsManager::new("c4_formater_prenom", true);
-
 
     let name = first_letter_uppercase(&console::lire_string_msg("Nom ? "));
     let firstname = first_letter_uppercase(&console::lire_string_msg("Prénom ? ")); 

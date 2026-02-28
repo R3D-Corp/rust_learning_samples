@@ -67,8 +67,6 @@ fn convertisseur_base_16(mut n : usize) -> String {
 }
 
 fn main() {
-
-
     let mut l : LogsManager = LogsManager::new("convertisseur_base_2", true); 
     l.add_log(log_entry::create_log(None, "Démarrage du convertisseur")); 
 
