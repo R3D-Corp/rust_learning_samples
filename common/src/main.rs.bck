@@ -1,0 +1,141 @@
+slint::include_modules!();
+use std::{env, fs, path::PathBuf, thread, sync::{Arc, Mutex}};
+use std::io::{BufRead, BufReader};
+use std::process::{Command, Stdio, Child}; // Ajout explicite de Child
+use slint::{Color, ModelRc, VecModel, SharedString, Model};
+
+fn get_apps_from(bin_dir: &PathBuf) -> Vec<String> {
+    let mut apps: Vec<String> = Vec::new();
+
+    if let Ok(entries) = fs::read_dir(bin_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                if let Some(name) = path.file_stem() {
+                    apps.push(name.to_string_lossy().to_string());
+                }
+            }
+        }
+    } else {
+        println!("Erreur : Impossible de lire le dossier {:?}", bin_dir.canonicalize().unwrap_or(bin_dir.clone()));
+    }
+    apps.sort();
+    apps
+}
+
+fn get_available_apps() -> Vec<String> {
+    if cfg!(debug_assertions) {
+        let project_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let bin_dir = project_root.join("src\\bin");
+        get_apps_from(&bin_dir)
+    } else {
+        let mut p = env::current_exe().unwrap_or_default();
+        p.pop();
+        get_apps_from(&p.join("bin"))
+    }
+}
+
+fn add_log_entry(ui: &Launcher, msg_type: &str, message: &str, color: Color) {
+    let mut logs: Vec<LogEntryUI> = ui.get_console_logs().iter().collect();
+    logs.push(LogEntryUI {
+        r#type: msg_type.into(),
+        message: message.into(),
+        color,
+    });
+    if logs.len() > 100 { logs.remove(0); }
+    ui.set_console_logs(ModelRc::new(VecModel::from(logs)));
+}
+
+// Correction de la fonction kill_all pour qu'elle soit plus directe
+fn kill_all_processes(active_children: &Arc<Mutex<Vec<Child>>>) {
+    if let Ok(mut children) = active_children.lock() {
+        for mut child in children.drain(..) { // .drain(..) vide la liste en même temps
+            let _ = child.kill();
+        }
+    }
+}
+fn main() {
+    // Le vecteur stocke bien des processus (Child), pas des threads
+    let active_children = Arc::new(Mutex::new(Vec::<Child>::new()));
+
+    let ui = Launcher::new().unwrap();
+    let ui_handle = ui.as_weak();
+
+    let app_names = get_available_apps();
+    let shared_apps: Vec<SharedString> = app_names.into_iter().map(|s| s.into()).collect();
+    ui.set_apps(ModelRc::new(VecModel::from(shared_apps)));
+
+    // Callback pour le bouton "Kill All" (si tu l'as ajouté dans ton .slint)
+    let children_to_kill = active_children.clone();
+    // ui.on_kill_all(move || {
+    //     kill_all_processes(&children_to_kill);
+    // });
+
+    let children_to_add = active_children.clone();
+    ui.on_launch_app(move |app_name| {
+        let children_to_add = children_to_add.clone();
+        let ui_handle = ui_handle.clone();
+        
+        let bin_path = if cfg!(debug_assertions) {
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target\\debug")
+        } else {
+            let mut p = env::current_exe().unwrap();
+            p.pop();
+            p.join("bin")
+        };
+
+        let exe_name = if cfg!(windows) { format!("{}.exe", app_name) } else { app_name.to_string() };
+        let full_path = bin_path.join(exe_name);
+
+        let process = Command::new(&full_path)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .current_dir(bin_path)
+            .spawn();
+
+        match process {
+            Ok(mut child_proc) => {
+                let stdout = child_proc.stdout.take().expect("Failed to capture stdout");
+                let ui_handle_thread = ui_handle.clone();
+                let app_name_str = app_name.to_string();
+
+                if let Some(ui) = ui_handle.upgrade() {
+                    add_log_entry(&ui, "LAUNCHER", &format!("Démarrage de {}...", app_name_str), Color::from_rgb_u8(0, 255, 0));
+                }
+
+                // Thread pour écouter les logs (on ne stocke pas ce thread, il vit sa vie)
+                thread::spawn(move || {
+                    let reader = BufReader::new(stdout);
+                    for line in reader.lines() {
+                        if let Ok(text) = line {
+                            let ui_handle_inner = ui_handle_thread.clone();
+                            let text_clone = text.clone();
+                            let _ = slint::invoke_from_event_loop(move || {
+                                if let Some(ui) = ui_handle_inner.upgrade() {
+                                    add_log_entry(&ui, "SUB-APP", &text_clone, Color::from_rgb_u8(224, 68, 80));
+                                }
+                            });
+                        }
+                    }
+                });
+
+                // On stocke le processus dans le Mutex
+                if let Ok(mut children) = children_to_add.lock() {
+                    // Nettoyage des processus qui se sont déjà arrêtés
+                    children.retain_mut(|c| c.try_wait().map(|s| s.is_none()).unwrap_or(false));
+                    children.push(child_proc);
+                }
+            }
+            Err(e) => {
+                if let Some(ui) = ui_handle.upgrade() {
+                    add_log_entry(&ui, "ERROR", &format!("Erreur lancement : {}", e), Color::from_rgb_u8(255, 0, 0));
+                }
+            }
+        }
+    });
+
+    ui.run().unwrap();
+
+    // Nettoyage final quand on ferme la fenêtre
+    kill_all_processes(&active_children);
+}

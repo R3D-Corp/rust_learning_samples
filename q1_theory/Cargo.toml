@@ -1,0 +1,17 @@
+[package]
+name = "q1_theory"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bevy = { workspace = true }
+bincode = { workspace = true }
+chrono = { workspace = true }
+rand = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true }
+slint = { workspace = true }
+helmo_b1_rust = { workspace = true }
+
+[build-dependencies]
+slint-build = { workspace = true }

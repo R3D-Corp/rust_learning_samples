@@ -3,13 +3,14 @@ use serde::{Serialize, Deserialize};
 
 const STORAGE_FOLDER : &'static str = "data/db/";
 
-
+#[allow(dead_code)]
 enum DbType {
     Player,
     Inventory
 }
 
 pub struct DbManager {
+    #[allow(dead_code)]
     instances: HashMap<DbType, Arc<Mutex<OxideDb>>>,
 }
 
@@ -37,7 +38,7 @@ pub struct OxideDb {
 }
 
 impl OxideDb {
-    fn new(db_name: &str) -> OxideDb {
+    pub fn new(db_name: &str) -> OxideDb {
         if let Err(e) = create_dir_all(format!("{}/", STORAGE_FOLDER)) {
             eprintln!("{}", e);
         }
@@ -150,7 +151,6 @@ impl OxideDb {
         
         self.write_with_key(&id.into(), bytes)
     }
-
 }
 
 fn hash_id(id: &String) -> u64 {

@@ -1,0 +1,126 @@
+import { AboutSlint, VerticalBox, ListView, ScrollView, HorizontalBox } from "std-widgets.slint";
+import { SuperclicsUI } from "src/bin/c3_superclics/style.slint";
+
+export { SuperclicsUI }
+
+
+global Theme {
+    out property <color> neon_red: #e04450;
+    out property <color> background: #262335;
+    out property <color> terminal_bg: #1a1a1a;
+    out property <length> border_radius: 4px;
+}
+
+struct LogEntryUI {
+    type : string,
+    message: string,
+    color: color
+}
+
+component LogEntry {
+    in property<LogEntryUI> log_data;
+
+    Rectangle {
+        HorizontalLayout {
+            padding: 0px;
+            spacing: 2.5px;
+            alignment: start;
+
+            Text {
+                text : "["+ root.log_data.type + "]";
+                font-size: 14px;
+                font-weight: 700;
+                color: root.log_data.color;
+            }
+
+            Text {
+                text : root.log_data.message;
+                font-size: 14px;
+                font-weight: 550;
+                font-family: "JetBrains Mono";
+            }
+        }
+    }
+
+}
+
+component AppButton {
+    in property <string> app_name;
+    callback clicked;
+
+    TouchArea {
+        clicked => {root.clicked()}
+
+        Rectangle {
+            background: parent.has-hover ? #2a2a2a : #1a1a1a;
+            border-width: 2px;
+            border-color: parent.has-hover ? Theme.neon_red : #2a2a2a;
+            border-radius: 4px;
+            animate background { duration: 150ms; }
+            animate border-color { duration : 150ms; }
+
+            HorizontalLayout {
+                padding: 15px;
+                spacing: 15px;
+                alignment: start;
+
+                Rectangle {
+                    width: 24px;
+                    height: 24px;
+                    background: Theme.neon_red;
+                    border-radius: 12px;
+                    opacity: 0.8;
+                }
+
+                Text {
+                    text: root.app_name;
+                    font-size: 16px;
+                    font-weight: 700;
+                    vertical-alignment: center;
+                    color: Theme.neon_red;
+                }
+            }
+        }
+    }
+}
+
+export component Launcher inherits Window {
+    background: #262335;
+    preferred-width: 1920px; 
+    preferred-height: 1080px;
+    title: "Launcher |";
+    
+
+    callback launch_app(string);
+
+    in property <[string]> apps : ["Sokoban", "Baiseur de mifl", "TEST 237"];
+    in property <[LogEntryUI]> console_logs;
+
+    HorizontalBox {
+        padding: 20px;
+        spacing: 20px;
+        
+        ScrollView {
+            VerticalLayout {
+                spacing: 10px;
+                alignment: start;
+                for name in root.apps : AppButton {
+                    app_name : name;
+                    clicked => { root.launch_app(name) }
+                }
+            }
+        }
+
+        ScrollView {
+            VerticalLayout {
+                padding-top: 5px;
+                spacing: 10px;
+                alignment: start;
+                for log in root.console_logs : LogEntry {
+                    log_data: log;
+                }
+            }
+        }
+    }
+    
+}

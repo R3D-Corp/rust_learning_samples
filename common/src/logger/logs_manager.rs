@@ -11,8 +11,7 @@ const LOGS_SIZE : usize = 100;
 pub struct LogsManager {
     path: String, // Path to save at.
     verbose : bool, // If the console receive or not the messages
-    logs : Vec<LogEntry> // Vector to save the data
-    
+    logs : Vec<LogEntry>, // Vector to save the data
 }
 
 impl LogsManager {
@@ -35,7 +34,7 @@ impl LogsManager {
         let l = LogsManager {
             path,
             verbose,
-            logs :  Vec::with_capacity(LOGS_SIZE)
+            logs :  Vec::with_capacity(LOGS_SIZE),
         };
         
 

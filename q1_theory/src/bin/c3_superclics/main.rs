@@ -4,14 +4,14 @@ use std::time::Instant;
 use rand::Rng;
 
 
-fn move_circle(handler : &AppWindow) {
+fn move_circle(handler : &SuperclicsUI) {
     let width = handler.get_area_width();
     let height = handler.get_area_height();
 
     move_circle_into(&handler, width, height);
 }
 
-fn move_circle_into(handler : &AppWindow, width : f32, height : f32) {
+fn move_circle_into(handler : &SuperclicsUI, width : f32, height : f32) {
     let mut rng = rand::thread_rng();
 
     let new_x = rng.gen_range(0.0..(width - 60.0));
@@ -21,7 +21,7 @@ fn move_circle_into(handler : &AppWindow, width : f32, height : f32) {
     handler.set_circle_y(new_y.into());
 }
 
-fn incr_score(handler : &AppWindow, start : &mut Instant) {
+fn incr_score(handler : &SuperclicsUI, start : &mut Instant) {
     let time = start.elapsed().as_secs_f32();
 
     let score : f32 = handler.get_score() as f32;
@@ -36,7 +36,7 @@ fn incr_score(handler : &AppWindow, start : &mut Instant) {
 fn main() {
     let mut start = Instant::now();
 
-    let ui = AppWindow::new().unwrap();
+    let ui = SuperclicsUI::new().unwrap();
     let ui_handle = ui.as_weak();
     
     let ui_handle_click = ui_handle.clone();
