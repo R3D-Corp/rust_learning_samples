@@ -56,7 +56,7 @@ impl FromStr for Register {
 
     ///
     /// Function to convert from &str an Register
-    /// It's used in ther console::lire_type<T>
+    /// It's used in the `console::lire_type<T>` below
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let re = Regex::new(r"^(\d{2})\.(\d{2})\.(\d{2})-(\d{3})\.(\d{2})$").unwrap();
 

@@ -6,7 +6,6 @@ In the mind to train myself on the modern's technics & programs I chose to carry
 
 Some links : <br>
 - [Theorical](https://github.com/R3D-Corp/HELMo_B1/)
-- [Labos](https://github.com/R3D-Corp/HELMo-B1-Labo)
 
 ## Technical choices
 
@@ -45,7 +44,6 @@ dans l'esprit de me former au programmes & techniques modernes j'ai choisit de p
 
 Différents liens : <br>
 - [Théorie](https://github.com/R3D-Corp/HELMo_B1/)
-- [Labos](https://github.com/R3D-Corp/Helmo-B1-Labo)
 
 ## Choix technique
 
